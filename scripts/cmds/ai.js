@@ -2,93 +2,86 @@ const axios = require("axios");
 
 module.exports.config = {
   name: "ai",
-  aliases: [],
-  version: "1.0.1",
+  aliases: ["gpt", "chat"],
+  version: "1.0.3",
   role: 0,
-  author: "dipto (mod by ChatGPT)",
+  author: "dipto (mod by keijk)",
   description: "AI chatbot powered by daikyu-api (o3-mini)",
-  usePrefix: false,
-  guide: "[message]",
+  usePrefix: false, // para hindi na kailangan ng "."
   category: "Ai",
-  countDown: 5,
+  countDown: 3,
 };
 
+// kapag nireplyan yung message ng bot → automatic tuloy usapan
 module.exports.onReply = async function ({ api, event, Reply }) {
-  const { author } = Reply;
-  if (author != event.senderID) return;
+  if (Reply.author != event.senderID) return;
 
-  if (event.type == "message_reply") {
-    const reply = event.body.toLowerCase();
-    if (isNaN(reply)) {
-      try {
-        const url = `https://daikyu-api.up.railway.app/api/o3-mini?prompt=${encodeURIComponent(
-          reply
-        )}&uid=${author}`;
-
-        console.log("➡️ Fetching (onReply):", url); // DEBUG LOG
-
-        const response = await axios.get(url);
-        const ok = response.data.response;
-
-        await api.sendMessage(
-          ok,
-          event.threadID,
-          (errr, info) => {
-            global.GoatBot.onReply.set(info.messageID, {
-              commandName: this.config.name,
-              type: "reply",
-              messageID: info.messageID,
-              author: event.senderID,
-              link: ok,
-            });
-          },
-          event.messageID
-        );
-      } catch (error) {
-        console.log("❌ Error in onReply:", error.message);
-        api.sendMessage(`Error: ${error.message}`, event.threadID, event.messageID);
-      }
-    }
-  }
-};
-
-module.exports.onStart = async function ({ api, args, event }) {
   try {
-    const author = event.senderID;
-    const input = args.join(" ");
-    if (!args[0]) {
-      return api.sendMessage(
-        "Please provide a question to answer\n\nExample:\n.ai hey",
-        event.threadID,
-        event.messageID
-      );
-    }
-
+    const prompt = event.body.trim();
     const url = `https://daikyu-api.up.railway.app/api/o3-mini?prompt=${encodeURIComponent(
-      input
-    )}&uid=${author}`;
-
-    console.log("➡️ Fetching (onStart):", url); // DEBUG LOG
+      prompt
+    )}&uid=${event.senderID}`;
 
     const response = await axios.get(url);
-    const mg = response.data.response;
+    const reply = response.data.response;
 
     await api.sendMessage(
-      { body: mg },
+      reply,
       event.threadID,
-      (error, info) => {
+      (err, info) => {
+        if (err) return console.error(err);
         global.GoatBot.onReply.set(info.messageID, {
-          commandName: this.config.name,
+          commandName: module.exports.config.name,
           type: "reply",
           messageID: info.messageID,
-          author,
-          link: mg,
+          author: event.senderID,
         });
       },
       event.messageID
     );
-  } catch (error) {
-    console.log("❌ Failed to get an answer:", error.message);
-    api.sendMessage(`Error: ${error.message}`, event.threadID, event.messageID);
+  } catch (e) {
+    console.error("❌ Error onReply:", e.message);
+    api.sendMessage("⚠️ Error: " + e.message, event.threadID, event.messageID);
+  }
+};
+
+// kapag nagsend ng "ai ..." → automatic trigger
+module.exports.onChat = async function ({ api, event }) {
+  if (event.senderID == api.getCurrentUserID()) return;
+
+  const message = event.body?.trim();
+  if (!message) return;
+
+  // ✅ check kung nagsisimula sa "ai " (kahit uppercase AI)
+  if (!/^ai\s+/i.test(message)) return;
+
+  try {
+    const input = message.replace(/^ai\s+/i, ""); // tanggalin yung "ai " prefix
+    if (!input) return api.sendMessage("⚠️ Please provide a question after 'ai'", event.threadID, event.messageID);
+
+    const url = `https://daikyu-api.up.railway.app/api/o3-mini?prompt=${encodeURIComponent(
+      input
+    )}&uid=${event.senderID}`;
+
+    const response = await axios.get(url);
+    const reply = response.data.response;
+
+    await api.sendMessage(
+      reply,
+      event.threadID,
+      (err, info) => {
+        if (err) return console.error(err);
+        global.GoatBot.onReply.set(info.messageID, {
+          commandName: module.exports.config.name,
+          type: "reply",
+          messageID: info.messageID,
+          author: event.senderID,
+        });
+      },
+      event.messageID
+    );
+  } catch (e) {
+    console.error("❌ Error onChat:", e.message);
+    api.sendMessage("⚠️ Error: " + e.message, event.threadID, event.messageID);
   }
 };
