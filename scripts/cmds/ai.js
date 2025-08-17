@@ -1,24 +1,12 @@
 const axios = require("axios");
 
-const baseUrl = async () => {
-  try {
-    const base = await axios.get(
-      `https://raw.githubusercontent.com/Blankid018/D1PT0/main/baseApiUrl.json`
-    );
-    return base.data.api;
-  } catch (error) {
-    console.log("❌ Failed to fetch baseUrl:", error.message);
-    throw error;
-  }
-};
-
 module.exports.config = {
   name: "ai",
   aliases: [],
-  version: "1.0.0",
+  version: "1.0.1",
   role: 0,
-  author: "dipto",
-  description: "Gpt4 ai with multiple conversation",
+  author: "dipto (mod by ChatGPT)",
+  description: "AI chatbot powered by daikyu-api (o3-mini)",
   usePrefix: true,
   guide: "[message]",
   category: "Ai",
@@ -28,17 +16,19 @@ module.exports.config = {
 module.exports.onReply = async function ({ api, event, Reply }) {
   const { author } = Reply;
   if (author != event.senderID) return;
+
   if (event.type == "message_reply") {
     const reply = event.body.toLowerCase();
     if (isNaN(reply)) {
       try {
-        const url = `${await baseUrl()}/gpt4?text=${encodeURIComponent(
+        const url = `https://daikyu-api.up.railway.app/api/o3-mini?prompt=${encodeURIComponent(
           reply
-        )}&senderID=${author}`;
+        )}&uid=${author}`;
+
         console.log("➡️ Fetching (onReply):", url); // DEBUG LOG
 
         const response = await axios.get(url);
-        const ok = response.data.data;
+        const ok = response.data.response;
 
         await api.sendMessage(
           ok,
@@ -65,7 +55,7 @@ module.exports.onReply = async function ({ api, event, Reply }) {
 module.exports.onStart = async function ({ api, args, event }) {
   try {
     const author = event.senderID;
-    const dipto = args.join(" ").toLowerCase();
+    const input = args.join(" ");
     if (!args[0]) {
       return api.sendMessage(
         "Please provide a question to answer\n\nExample:\n.ai hey",
@@ -74,30 +64,29 @@ module.exports.onStart = async function ({ api, args, event }) {
       );
     }
 
-    if (dipto) {
-      const url = `${await baseUrl()}/gpt4?text=${encodeURIComponent(
-        dipto
-      )}&senderID=${author}`;
-      console.log("➡️ Fetching (onStart):", url); // DEBUG LOG
+    const url = `https://daikyu-api.up.railway.app/api/o3-mini?prompt=${encodeURIComponent(
+      input
+    )}&uid=${author}`;
 
-      const response = await axios.get(url);
-      const mg = response.data.data;
+    console.log("➡️ Fetching (onStart):", url); // DEBUG LOG
 
-      await api.sendMessage(
-        { body: mg },
-        event.threadID,
-        (error, info) => {
-          global.GoatBot.onReply.set(info.messageID, {
-            commandName: this.config.name,
-            type: "reply",
-            messageID: info.messageID,
-            author,
-            link: mg,
-          });
-        },
-        event.messageID
-      );
-    }
+    const response = await axios.get(url);
+    const mg = response.data.response;
+
+    await api.sendMessage(
+      { body: mg },
+      event.threadID,
+      (error, info) => {
+        global.GoatBot.onReply.set(info.messageID, {
+          commandName: this.config.name,
+          type: "reply",
+          messageID: info.messageID,
+          author,
+          link: mg,
+        });
+      },
+      event.messageID
+    );
   } catch (error) {
     console.log("❌ Failed to get an answer:", error.message);
     api.sendMessage(`Error: ${error.message}`, event.threadID, event.messageID);
