@@ -56,7 +56,7 @@ module.exports = {
     const { threadID } = event;
     const prefix = getPrefix(threadID);
     const commandName = args[0]?.toLowerCase();
-    const bannerPath = path.join(__dirname, "assets", "20250319_111041.png");
+    const bannerPath = path.join(__dirname, "assets", "");
 
     if (commandName === 'c' && args[1]) {
       const categoryArg = args[1].toUpperCase();
