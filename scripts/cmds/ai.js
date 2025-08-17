@@ -68,7 +68,7 @@ module.exports.onStart = async function ({ api, args, event }) {
     const dipto = args.join(" ").toLowerCase();
     if (!args[0]) {
       return api.sendMessage(
-        "Please provide a question to answer\n\nExample:\n!gpt4 hey",
+        "Please provide a question to answer\n\nExample:\n.ai hey",
         event.threadID,
         event.messageID
       );
