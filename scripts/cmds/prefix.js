@@ -103,7 +103,7 @@ module.exports = {
 📅 Date           : ${datePart.padEnd(10)}
 ╚══════════════════╝`;
 
-			const prefixImage = "https://i.ibb.co/Zzqz5nBx/file-00000000588061f6ac814c432f6c0273.png";
+			const prefixImage = "";
 
 			return message.reply({
 				body: infoBox,
