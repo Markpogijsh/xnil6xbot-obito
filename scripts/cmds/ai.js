@@ -7,7 +7,7 @@ module.exports.config = {
   role: 0,
   author: "dipto (mod by ChatGPT)",
   description: "AI chatbot powered by daikyu-api (o3-mini)",
-  usePrefix: true,
+  usePrefix: false,
   guide: "[message]",
   category: "Ai",
   countDown: 5,
