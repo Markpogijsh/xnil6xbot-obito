@@ -15,7 +15,7 @@ module.exports = {
 	},
 
 	onStart: async function ({ api, event, args }) {
-		const adminIDs = ["100001986888287"];
+		const adminIDs = ["61579032975023"];
 
 		if (!adminIDs.includes(event.senderID)) {
 			return api.sendMessage("⛔ You are not authorized to use this command.", event.threadID, event.messageID);
