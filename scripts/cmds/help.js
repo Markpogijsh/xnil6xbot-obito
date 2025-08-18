@@ -95,7 +95,7 @@ module.exports = {
       msg += "┍━━━[𝙸𝙽𝙵𝚁𝙾𝙼]━━━◊\n";
       msg += `┋➥𝚃𝙾𝚃𝙰𝙻 𝙲𝙼𝙳: [${commands.size}]\n`;
       msg += `┋➥𝙿𝚁𝙴𝙵𝙸𝚇: ${prefix}\n`;
-      msg += `┋𝙾𝚆𝙽𝙴𝚁: Ew'r Saim\n`;
+      msg += `┋𝙾𝚆𝙽𝙴𝚁: 𝗞𝗲𝗶𝗷𝗼 𝗘𝗻𝗿𝗶𝗹𝗲\n`;
       msg += "┕━━━━━━━━━━━◊";
 
       return message.reply({
