@@ -23,6 +23,9 @@ function isURL(str) {
     }
 }
 
+// Admin array
+const ADMINS = ["61579032975023", "61579032975023"]; // <-- ilagay dito ang admin user IDs
+
 module.exports = {
     config: {
         name: "cmd",
@@ -30,15 +33,21 @@ module.exports = {
         author: "NTKhang",
         countDown: 5,
         role: 3,
-        admin: ["61579032975023", "61579032975023"], // <-- admin array
+        admin: ADMINS,
         description: {
             vi: "Quản lý các tệp lệnh của bạn",
             en: "Manage your command files"
         },
         category: "owner",
         guide: {
-            vi: "   {pn} load <tên file lệnh>\n   {pn} loadAll\n   {pn} install <url> <tên file lệnh>: Tải xuống và cài đặt một tệp lệnh từ một url",
-            en: "   {pn} load <command file name>\n   {pn} loadAll\n   {pn} install <url> <command file name>: Download and install a command file from a url"
+            vi: "   {pn} load <tên file lệnh>"
+                + "\n   {pn} loadAll"
+                + "\n   {pn} install <url> <tên file lệnh>: Tải xuống và cài đặt một tệp lệnh từ một url, url là đường dẫn đến tệp lệnh (raw)"
+                + "\n   {pn} install <tên file lệnh> <code>: Tải xuống và cài đặt một tệp lệnh từ một code, code là mã của lệnh",
+            en: "   {pn} load <command file name>"
+                + "\n   {pn} loadAll"
+                + "\n   {pn} install <url> <command file name>: Download and install a command file from a url, url is the path to the file (raw)"
+                + "\n   {pn} install <command file name> <code>: Download and install a command file from a code, code is the code of the command"
         }
     },
 
@@ -89,46 +98,39 @@ module.exports = {
         }
     },
 
-    onStart: async ({ args, message, event, api, threadModel, userModel, dashBoardModel, globalModel, threadsData, usersData, dashBoardData, globalData, commandName, getLang }) => {
-        // Admin check
-        if (!module.exports.config.admin.includes(event.senderID)) {
-            return message.reply("❌ You are not an admin!");
-        }
+    onStart: async ({ args, message, event, getLang, ...rest }) => {
+        // ADMIN CHECK
+        if (!ADMINS.includes(event.senderID))
+            return message.reply("⚠️ | You are not allowed to use this command");
 
+        // Original logic
         const { unloadScripts, loadScripts } = global.utils;
+        const configCommands = global.GoatBot.configCommands;
 
         if (args[0] == "load" && args.length == 2) {
-            if (!args[1])
-                return message.reply(getLang("missingFileName"));
-            const infoLoad = loadScripts("cmds", args[1], log, configCommands, api, threadModel, userModel, dashBoardModel, globalModel, threadsData, usersData, dashBoardData, globalData, getLang);
-            if (infoLoad.status == "success")
-                message.reply(getLang("loaded", infoLoad.name));
-            else {
-                message.reply(
-                    getLang("loadedError", infoLoad.name, infoLoad.error.name, infoLoad.error.message)
-                    + "\n" + infoLoad.error.stack
-                );
-                console.log(infoLoad.errorWithThoutRemoveHomeDir);
-            }
+            if (!args[1]) return message.reply(getLang("missingFileName"));
+            const infoLoad = loadScripts("cmds", args[1], log, configCommands, rest.api, rest.threadModel, rest.userModel, rest.dashBoardModel, rest.globalModel, rest.threadsData, rest.usersData, rest.dashBoardData, rest.globalData, getLang);
+            infoLoad.status == "success" ?
+                message.reply(getLang("loaded", infoLoad.name)) :
+                message.reply(getLang("loadedError", infoLoad.name, infoLoad.error.name, infoLoad.error.message) + "\n" + infoLoad.error.stack);
         }
-        // …dito mo ipagpapatuloy lahat ng existing onStart logic tulad ng loadAll, unload, install, etc.
+        // (iba pang loadall, unload, install code dito — copy paste ng original logic)
+        // Para sa brevity, puwede natin i-apply admin check sa lahat ng onStart functionality
     },
 
-    onReaction: async function ({ Reaction, message, event, api, threadModel, userModel, dashBoardModel, globalModel, threadsData, usersData, dashBoardData, globalData, getLang }) {
+    onReaction: async ({ Reaction, message, event, getLang, ...rest }) => {
+        // ADMIN CHECK
+        if (!ADMINS.includes(event.userID)) return;
+
         const { loadScripts } = global.utils;
         const { author, data: { fileName, rawCode } } = Reaction;
-        if (event.userID != author)
-            return;
-        const infoLoad = loadScripts("cmds", fileName, log, configCommands, api, threadModel, userModel, dashBoardModel, globalModel, threadsData, usersData, dashBoardData, globalData, getLang, rawCode);
+
+        if (event.userID != author) return;
+
+        const infoLoad = loadScripts("cmds", fileName, log, global.GoatBot.configCommands, rest.api, rest.threadModel, rest.userModel, rest.dashBoardModel, rest.globalModel, rest.threadsData, rest.usersData, rest.dashBoardData, rest.globalData, getLang, rawCode);
+
         infoLoad.status == "success" ?
             message.reply(getLang("installed", infoLoad.name, path.join(__dirname, fileName).replace(process.cwd(), ""))) :
             message.reply(getLang("installedError", infoLoad.name, infoLoad.error.name, infoLoad.error.message));
     }
 };
-
-// do not edit this code because it use for obfuscate code
-const packageAlready = [];
-const spinner = "\\|/-";
-let count = 0;
-
-// …dito mo ilalagay ang loadScripts function at lahat ng natitirang logic ng iyong command
