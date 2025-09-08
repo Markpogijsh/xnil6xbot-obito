@@ -1,57 +1,45 @@
 const axios = require("axios");
 
-let typoCounter = 0; // bilang ng typo responses
+let spacingCounter = 0; // bilang ng spacing responses
 
-function addTypos(text) {
-  // typo patterns (palit ng ilang letters)
-  const typoMap = {
-    a: ["s", "q"],
-    e: ["r", "w"],
-    i: ["o", "u"],
-    o: ["i", "p"],
-    u: ["i", "y"],
-    t: ["r", "y"],
-    n: ["m", "b"],
-    m: ["n"],
-    g: ["h", "f"]
-  };
+function addRandomSpacing(text) {
+  let words = text.split(" ");
+  let newWords = words.map(word => {
+    let spacedWord = word;
 
-  let chars = text.split("");
-  let typoCount = Math.floor(Math.random() * 3) + 1; // 1–3 typos per response
-
-  for (let i = 0; i < typoCount; i++) {
-    let idx = Math.floor(Math.random() * chars.length);
-    let char = chars[idx].toLowerCase();
-    if (typoMap[char]) {
-      let replacements = typoMap[char];
-      chars[idx] = replacements[Math.floor(Math.random() * replacements.length)];
+    // insert random spacing sa loob ng word (25% chance)
+    if (word.length > 3 && Math.random() < 0.25) {
+      const pos = Math.floor(Math.random() * (word.length - 1)) + 1;
+      spacedWord = word.slice(0, pos) + " " + word.slice(pos);
     }
-  }
 
-  return chars.join("");
+    return spacedWord;
+  });
+
+  return newWords.join(" ");
 }
 
 function humanizeText(text) {
-  typoCounter++;
+  spacingCounter++;
 
-  // bawat ika-4 na message → walang typo
-  if (typoCounter >= 4) {
-    typoCounter = 0;
+  // bawat ika-4 na message → walang spacing
+  if (spacingCounter >= 4) {
+    spacingCounter = 0;
     return text;
   }
 
-  return addTypos(text);
+  return addRandomSpacing(text);
 }
 
 module.exports = {
   config: {
     name: "ai",
-    version: "1.5",
+    version: "1.7",
     author: "Keijo",
     countDown: 3,
     role: 0,
     description:
-      "Chat with AI (Aria API with GPT fallback, human-like response: controlled typos + emojis)",
+      "Chat with AI (Aria API with GPT fallback, human-like response: random spacing every 3 messages, reset on 4th)",
     category: "fun",
     guide: {
       en: "Just type 'ai <your question>' or 'gpt <your question>' (no prefix needed).",
