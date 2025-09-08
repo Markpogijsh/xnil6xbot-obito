@@ -1,86 +1,73 @@
 const axios = require("axios");
 
-// ---- HUMANIZER ----
+function humanizeText(text) {
+  const emojis = ["😂", "😅", "☹️", "🤔", "😎", "😊", "🥲", "😉", "😮", "🙃"];
+  let words = text.split(" ");
 
-// Add random spaces in words (typo-like)
-function addSpaces(text) {
-  return text
-    .split(" ")
-    .map(word => {
-      if (Math.random() < 0.25 && word.length > 3) {
-        const pos = Math.floor(Math.random() * (word.length - 2)) + 1;
-        return word.slice(0, pos) + " " + word.slice(pos);
+  // random spacing + capitalization
+  words = words.map(word => {
+    let newWord = "";
+    for (let char of word) {
+      // random uppercase
+      if (/[a-zA-Z]/.test(char) && Math.random() < 0.3) {
+        newWord += char.toUpperCase();
+      } else {
+        newWord += char;
       }
-      return word;
-    })
-    .join(" ");
-}
+    }
 
-// Add contextual emojis
-function addEmojis(text) {
-  let out = text;
+    // insert random space in middle of some words
+    if (newWord.length > 2 && Math.random() < 0.25) {
+      const mid = Math.floor(newWord.length / 2);
+      newWord = newWord.slice(0, mid) + " " + newWord.slice(mid);
+    }
 
-  if (/\?$/.test(out) || /(paano|bakit|ano|saan)/i.test(out)) out += " 🤔";
-  if (/(haha|lol|joke|funny|tawa)/i.test(out)) out += " 😂";
-  if (/(salamat|thanks|thank you)/i.test(out)) out += " 🙏";
-  if (/(lungkot|sad|awa|wala)/i.test(out)) out += " ☹️";
-  if (/(saya|happy|buti|ayos|okay)/i.test(out)) out += " ☺️";
-  if (/(wow|amazing|galing|astig)/i.test(out)) out += " ✨";
+    return newWord;
+  });
 
-  // Random filler emoji
+  let humanized = words.join(" ");
+
+  // random emoji insertions
+  if (Math.random() < 0.6) {
+    humanized += " " + emojis[Math.floor(Math.random() * emojis.length)];
+  }
   if (Math.random() < 0.3) {
-    const random = ["😅", "☺️", "😂", "🤔", "✨"];
-    out += " " + random[Math.floor(Math.random() * random.length)];
+    const pos = Math.floor(Math.random() * humanized.length);
+    humanized =
+      humanized.slice(0, pos) +
+      " " +
+      emojis[Math.floor(Math.random() * emojis.length)] +
+      " " +
+      humanized.slice(pos);
   }
 
-  return out;
-}
-
-// Apply both
-function humanize(text) {
-  return addEmojis(addSpaces(text));
-}
-
-// ---- TYPE LIKE HUMAN ----
-async function simulateTyping(api, threadID, msgID, fullText) {
-  let display = "";
-  const words = fullText.split(" ");
-
-  for (const word of words) {
-    display += word + " ";
-    await new Promise(r => setTimeout(r, 350 + Math.random() * 250)); // delay kada salita
-    try {
-      await api.editMessage(display.trim() + "▌", msgID, threadID); // may cursor effect
-    } catch (e) {}
-  }
-
-  // Final clean output
-  await api.editMessage(fullText, msgID, threadID);
+  return humanized;
 }
 
 module.exports = {
   config: {
     name: "ai",
-    version: "1.2",
+    version: "1.4",
     author: "Keijo",
     countDown: 3,
     role: 0,
-    description: "AI assistant with Aria API (with GPT fallback), human-like typing + emojis",
+    description:
+      "Chat with AI (Aria API with GPT fallback, human-like response: typos + emojis + random capitalization)",
     category: "fun",
     guide: {
-      en: "Just type 'ai <your question>' (no prefix needed).",
-      vi: "Chỉ cần gõ 'ai <câu hỏi>' (không cần prefix)."
+      en: "Just type 'ai <your question>' or 'gpt <your question>' (no prefix needed).",
+      vi: "Chỉ cần gõ 'ai <câu hỏi>' hoặc 'gpt <câu hỏi>' (không cần prefix)."
     }
   },
 
   langs: {
     en: {
-      noQuestion: "Please provide a question first.",
-      error: "❌ Sorry, something went wrong. Please try again later."
+      noQuestion: "💡 PlE ase prov Ide a quesTion fiRst ☹️",
+      error: "❌ So Rry, some thing weNt wrong. Pls try agAin lat er 😂"
     },
     vi: {
-      noQuestion: "Vui lòng nhập câu hỏi trước.",
-      error: "❌ Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau."
+      noQuestion: "❌ Vui lÒng nhậP câU hỏI trưỚc 😅",
+      error: "❌ Xin lỗi, có lỗi xẢy ra. Vui lÒng thỬ lạI sau 🤔"
     }
   },
 
@@ -92,41 +79,57 @@ module.exports = {
     const content = event.body.trim();
     const lower = content.toLowerCase();
 
-    // Check if starts with "ai"
-    if (!lower.startsWith("ai")) return;
+    // Triggers: ai, AI, Ai, gpt
+    if (!(lower.startsWith("ai") || lower.startsWith("gpt"))) return;
 
-    const prompt = content.slice(2).trim();
-    if (!prompt) return message.reply(getLang("noQuestion"));
+    // Extract prompt (remove trigger word)
+    let prompt = "";
+    if (lower.startsWith("ai")) {
+      prompt = content.slice(2).trim();
+    } else if (lower.startsWith("gpt")) {
+      prompt = content.slice(3).trim();
+    }
 
-    api.sendMessage("⌛ Lo ading AI res ponse...", event.threadID, async (err, info) => {
+    if (!prompt) {
+      return message.reply(getLang("noQuestion"));
+    }
+
+    // Send loading msg
+    api.sendMessage("⌛ Loa dinG AI reS ponse...", event.threadID, async (err, info) => {
       if (err) return;
 
       try {
         // MAIN API → Aria
         const { data } = await axios.get(
           "https://betadash-api-swordslush-production.up.railway.app/Aria",
-          { params: { ask: prompt, userid: "61579032975023", stream: "hatdog" } }
+          {
+            params: {
+              ask: prompt,
+              userid: "61579032975023",
+              stream: "hatdog"
+            }
+          }
         );
 
         if (data.status === "200" && data.response) {
-          const reply = humanize(data.response);
-          return simulateTyping(api, event.threadID, info.messageID, reply);
+          const humanized = humanizeText(data.response);
+          return api.editMessage(humanized, info.messageID, event.threadID);
         } else {
           throw new Error("Aria returned invalid response");
         }
       } catch (err) {
         console.error("Aria API error:", err.message);
 
-        // FALLBACK → GPT
+        // FALLBACK → GPT API
         try {
           const url = `https://urangkapolka.vercel.app/api/chatgpt4?prompt=${encodeURIComponent(prompt)}`;
           const res = await axios.get(url);
 
           if (res.data && res.data.response) {
-            const reply = humanize(res.data.response);
-            return simulateTyping(api, event.threadID, info.messageID, reply);
+            const humanized = humanizeText(res.data.response);
+            return api.editMessage(humanized, info.messageID, event.threadID);
           } else {
-            throw new Error("GPT no response");
+            throw new Error("GPT API no response");
           }
         } catch (backupErr) {
           console.error("GPT API error:", backupErr.message);
