@@ -1,58 +1,57 @@
 const axios = require("axios");
 
+let typoCounter = 0; // bilang ng typo responses
+
+function addTypos(text) {
+  // typo patterns (palit ng ilang letters)
+  const typoMap = {
+    a: ["s", "q"],
+    e: ["r", "w"],
+    i: ["o", "u"],
+    o: ["i", "p"],
+    u: ["i", "y"],
+    t: ["r", "y"],
+    n: ["m", "b"],
+    m: ["n"],
+    g: ["h", "f"]
+  };
+
+  let chars = text.split("");
+  let typoCount = Math.floor(Math.random() * 3) + 1; // 1–3 typos per response
+
+  for (let i = 0; i < typoCount; i++) {
+    let idx = Math.floor(Math.random() * chars.length);
+    let char = chars[idx].toLowerCase();
+    if (typoMap[char]) {
+      let replacements = typoMap[char];
+      chars[idx] = replacements[Math.floor(Math.random() * replacements.length)];
+    }
+  }
+
+  return chars.join("");
+}
+
 function humanizeText(text) {
-  const emojis = ["😂", "😅", "☹️", "🤔", "😎", "😊", "🥲", "😉", "😮", "🙃"];
-  let words = text.split(" ");
+  typoCounter++;
 
-  // random spacing + capitalization
-  words = words.map(word => {
-    let newWord = "";
-    for (let char of word) {
-      // random uppercase
-      if (/[a-zA-Z]/.test(char) && Math.random() < 0.3) {
-        newWord += char.toUpperCase();
-      } else {
-        newWord += char;
-      }
-    }
-
-    // insert random space in middle of some words
-    if (newWord.length > 2 && Math.random() < 0.25) {
-      const mid = Math.floor(newWord.length / 2);
-      newWord = newWord.slice(0, mid) + " " + newWord.slice(mid);
-    }
-
-    return newWord;
-  });
-
-  let humanized = words.join(" ");
-
-  // random emoji insertions
-  if (Math.random() < 0.6) {
-    humanized += " " + emojis[Math.floor(Math.random() * emojis.length)];
-  }
-  if (Math.random() < 0.3) {
-    const pos = Math.floor(Math.random() * humanized.length);
-    humanized =
-      humanized.slice(0, pos) +
-      " " +
-      emojis[Math.floor(Math.random() * emojis.length)] +
-      " " +
-      humanized.slice(pos);
+  // bawat ika-4 na message → walang typo
+  if (typoCounter >= 4) {
+    typoCounter = 0;
+    return text;
   }
 
-  return humanized;
+  return addTypos(text);
 }
 
 module.exports = {
   config: {
     name: "ai",
-    version: "1.4",
+    version: "1.5",
     author: "Keijo",
     countDown: 3,
     role: 0,
     description:
-      "Chat with AI (Aria API with GPT fallback, human-like response: typos + emojis + random capitalization)",
+      "Chat with AI (Aria API with GPT fallback, human-like response: controlled typos + emojis)",
     category: "fun",
     guide: {
       en: "Just type 'ai <your question>' or 'gpt <your question>' (no prefix needed).",
@@ -62,12 +61,12 @@ module.exports = {
 
   langs: {
     en: {
-      noQuestion: "💡 PlE ase prov Ide a quesTion fiRst ☹️",
-      error: "❌ So Rry, some thing weNt wrong. Pls try agAin lat er 😂"
+      noQuestion: "💡 Please provide a question first!",
+      error: "❌ Sorry, something went wrong. Please try again later 😂"
     },
     vi: {
-      noQuestion: "❌ Vui lÒng nhậP câU hỏI trưỚc 😅",
-      error: "❌ Xin lỗi, có lỗi xẢy ra. Vui lÒng thỬ lạI sau 🤔"
+      noQuestion: "❌ Vui lòng nhập câu hỏi trước 😅",
+      error: "❌ Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau 🤔"
     }
   },
 
@@ -95,7 +94,7 @@ module.exports = {
     }
 
     // Send loading msg
-    api.sendMessage("⌛ Loa dinG AI reS ponse...", event.threadID, async (err, info) => {
+    api.sendMessage("⏳ Loading AI response...", event.threadID, async (err, info) => {
       if (err) return;
 
       try {
